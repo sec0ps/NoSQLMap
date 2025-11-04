@@ -443,51 +443,75 @@ def options():
                 x += 1
 
         elif select == "a":
-            loadPath = input("Enter path to Burp request file: ")
-            reqData = []
-            try:
-                with open(loadPath,"r") as fo:
-                    for line in fo:
-                        reqData.append(line.rstrip())
-            except IOError as e:
-                print("I/O error({0}): {1}".format(e.errno, e.strerror))
-                input("error reading file.  Press enter to continue...")
-                return
+                    loadPath = input("Enter path to Burp request file: ")
+                    reqData = []
+                    try:
+                        with open(loadPath,"r") as fo:
+                            for line in fo:
+                                reqData.append(line.rstrip())
+                    except IOError as e:
+                        print("I/O error({0}): {1}".format(e.errno, e.strerror))
+                        input("error reading file.  Press enter to continue...")
+                        return
 
-            methodPath = reqData[0].split(" ")
+                    methodPath = reqData[0].split(" ")
 
-            if methodPath[0] == "GET":
-                httpMethod = "GET"
+                    if methodPath[0] == "GET":
+                        httpMethod = "GET"
 
-            elif methodPath[0] == "POST":
-                paramNames = []
-                paramValues = []
-                httpMethod = "POST"
-                postData = reqData[len(reqData)-1]
-                # split the POST parameters up into individual items
-                paramsNvalues = postData.split("&")
+                    elif methodPath[0] == "POST":
+                        paramNames = []
+                        paramValues = []
+                        httpMethod = "POST"
+                        postData = reqData[len(reqData)-1]
+                        # split the POST parameters up into individual items
+                        paramsNvalues = postData.split("&")
 
-                for item in paramsNvalues:
-                    tempList = item.split("=")
-                    paramNames.append(tempList[0])
-                    paramValues.append(tempList[1])
+                        for item in paramsNvalues:
+                            tempList = item.split("=")
+                            paramNames.append(tempList[0])
+                            paramValues.append(tempList[1])
 
-                postData = dict(zip(paramNames, paramValues))
+                        postData = dict(zip(paramNames, paramValues))
 
-            else:
-                print("unsupported method in request header.")
+                    else:
+                        print("unsupported method in request header.")
 
-            # load the HTTP headers
-            for line in reqData[1:]:
-                print(line)
-                if not line.strip(): break
-                header = line.split(": ");
-                requestHeaders[header[0]] = header[1].strip()
+                    # Extract the URI from the first line (not including protocol/host)
+                    fullUrl = methodPath[1]
+                    if fullUrl.startswith('http://') or fullUrl.startswith('https://'):
+                        # Parse full URL
+                        from urllib.parse import urlparse
+                        parsed = urlparse(fullUrl)
+                        victim = parsed.hostname
+                        webPort = parsed.port if parsed.port else (443 if parsed.scheme == 'https' else 80)
+                        uri = parsed.path
+                        https = "ON" if parsed.scheme == 'https' else "OFF"
+                        optionSet[8] = True
+                        optionSet[1] = True
+                    else:
+                        # Relative URL, extract host from headers
+                        uri = fullUrl
 
-            victim = reqData[1].split( " ")[1]
-            optionSet[0] = True
-            uri = methodPath[1]
-            optionSet[2] = True
+                    # Load the HTTP headers and extract Host if needed
+                    for line in reqData[1:]:
+                        if not line.strip(): break
+                        header = line.split(": ", 1)
+                        if len(header) == 2:
+                            requestHeaders[header[0]] = header[1].strip()
+                            # Extract victim from Host header if not already set
+                            if header[0].lower() == 'host' and 'victim' not in locals():
+                                victim = header[1].strip()
+
+                    optionSet[0] = True
+                    optionSet[2] = True
+
+                    print(f"\nLoaded from Burp file:")
+                    print(f"  Host: {victim}")
+                    print(f"  Port: {webPort}")
+                    print(f"  URI: {uri}")
+                    print(f"  Method: {httpMethod}")
+                    print(f"  HTTPS: {https}")
 
         elif select == "b":
             savePath = input("Enter file name to save: ")
